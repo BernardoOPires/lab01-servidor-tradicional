@@ -1,13 +1,19 @@
 {
   "name": "lab01-servidor-tradicional",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Sistema de tarefas com arquitetura cliente-servidor tradicional",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "sistemas-distribuidos",
+    "cliente-servidor",
+    "rest-api"
+  ],
+  "author": "Aluno PUC Minas",
+  "license": "MIT",
   "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.2",
