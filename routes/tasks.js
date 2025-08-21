@@ -13,6 +13,14 @@ router.use(authMiddleware);
 // Listar tarefas
 router.get('/', async (req, res) => {
     try {
+
+        let { page, limit } = req.query;
+
+        page = page ? parseInt(page) : 2;
+        limit = limit ? parseInt(limit) : 10;
+
+        const offset = (page - 1) * limit;
+
         const { completed, priority } = req.query;
         let sql = 'SELECT * FROM tasks WHERE userId = ?';
         const params = [req.user.id];
@@ -21,19 +29,26 @@ router.get('/', async (req, res) => {
             sql += ' AND completed = ?';
             params.push(completed === 'true' ? 1 : 0);
         }
-        
+
         if (priority) {
             sql += ' AND priority = ?';
             params.push(priority);
         }
 
-        sql += ' ORDER BY createdAt DESC';
+        sql += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
+        params.push(limit, offset);
 
-        const rows = await database.all(sql, params);
-        const tasks = rows.map(row => new Task({...row, completed: row.completed === 1}));
+         //database.all executa a query com sql --> mas os dados vc puxa pelo res?
+        const rows = await database.all(sql, params); //essa parte retornou os dados, ent basta usar a formatação na resposta?
+        //percorre as linhas retornadas pelo bd eo obj task com ela
+        const tasks = rows.map(row => new Task({ ...row, completed: row.completed === 1 }));
 
-        res.json({
+        console.log(sql)
+           res.json({
             success: true,
+            page,
+            limit,
+            count: tasks.length,
             data: tasks.map(task => task.toJSON())
         });
     } catch (error) {
@@ -44,15 +59,15 @@ router.get('/', async (req, res) => {
 // Criar tarefa
 router.post('/', validate('task'), async (req, res) => {
     try {
-        const taskData = { 
-            id: uuidv4(), 
-            ...req.body, 
-            userId: req.user.id 
+        const taskData = {
+            id: uuidv4(),
+            ...req.body,
+            userId: req.user.id
         };
-        
+
         const task = new Task(taskData);
         const validation = task.validate();
-        
+
         if (!validation.isValid) {
             return res.status(400).json({
                 success: false,
@@ -91,7 +106,7 @@ router.get('/:id', async (req, res) => {
             });
         }
 
-        const task = new Task({...row, completed: row.completed === 1});
+        const task = new Task({ ...row, completed: row.completed === 1 });
         res.json({
             success: true,
             data: task.toJSON()
@@ -105,7 +120,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { title, description, completed, priority } = req.body;
-        
+
         const result = await database.run(
             'UPDATE tasks SET title = ?, description = ?, completed = ?, priority = ? WHERE id = ? AND userId = ?',
             [title, description, completed ? 1 : 0, priority, req.params.id, req.user.id]
@@ -123,8 +138,8 @@ router.put('/:id', async (req, res) => {
             [req.params.id, req.user.id]
         );
 
-        const task = new Task({...updatedRow, completed: updatedRow.completed === 1});
-        
+        const task = new Task({ ...updatedRow, completed: updatedRow.completed === 1 });
+
         res.json({
             success: true,
             message: 'Tarefa atualizada com sucesso',

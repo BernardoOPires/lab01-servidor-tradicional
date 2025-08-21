@@ -62,7 +62,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use(/.*/, (req, res) => {
     res.status(404).json({
         success: false,
         message: 'Endpoint não encontrado'
