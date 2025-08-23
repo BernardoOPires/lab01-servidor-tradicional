@@ -2,7 +2,7 @@ const rateLimit = require('express-rate-limit');
 
 const userRateLimit = rateLimit({
   windowMs: 30 * 60 * 1000, 
-  max: 1, 
+  max: 75, 
   keyGenerator: (req) => {
     if (req.user && req.user.id) {
       return req.user.id;

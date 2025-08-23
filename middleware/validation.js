@@ -16,8 +16,11 @@ const schemas = {
 
     task: Joi.object({
         title: Joi.string().min(1).max(200).required(),
-        description: Joi.string().max(1000).allow(''),
-        priority: Joi.string().valid('low', 'medium', 'high', 'urgent').default('medium')
+    description: Joi.string().max(1000).allow(''),
+    priority: Joi.string().valid('low', 'medium', 'high', 'urgent').default('medium'),
+    category: Joi.string().max(50).optional(),
+    tags: Joi.string().optional(), 
+    dueDate: Joi.date().optional()
     })
 };
 

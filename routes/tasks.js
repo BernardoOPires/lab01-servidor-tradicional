@@ -7,6 +7,8 @@ const { validate } = require('../middleware/validation');
 
 const router = express.Router();
 
+const logger = require('../config/logger');
+
 const userRateLimit = require('../middleware/rateLimiteUser');
 // Todas as rotas requerem autenticação
 router.use(authMiddleware, userRateLimit);
@@ -17,8 +19,8 @@ const cache = new Map();
 router.get('/', async (req, res) => {
     try {
 
-        let { page, limit, completed, priority } = req.query;
-        page = page ? parseInt(page) : 2;
+        let { page, limit, completed, priority, category, tags, startDate, endDate } = req.query;
+        page = page ? parseInt(page) : 1;
         limit = limit ? parseInt(limit) : 10;
         const offset = (page - 1) * limit;
 
@@ -32,7 +34,7 @@ router.get('/', async (req, res) => {
                 return res.json({ success: true, cached: true, ...data });
             }
         }
-
+        console.log("Usuário autenticado no GET:", req.user);
 
         let sql = 'SELECT * FROM tasks WHERE userId = ?';
         const params = [req.user.id];
@@ -47,6 +49,20 @@ router.get('/', async (req, res) => {
             params.push(priority);
         }
 
+        if (category) {
+            sql += ' AND category LIKE ?';
+            params.push(`%${category.trim()}%`);
+        }
+        if (tags) {
+            sql += ' AND tags LIKE ?';
+            params.push(`%${tags}%`);
+        }
+
+        if (startDate && endDate) {
+            sql += ' AND dueDate BETWEEN ? AND ?';
+            params.push(startDate, endDate);
+        }
+
         sql += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
 
@@ -54,7 +70,9 @@ router.get('/', async (req, res) => {
         const rows = await database.all(sql, params); //essa parte retornou os dados, ent basta usar a formatação na resposta?
         //percorre as linhas retornadas pelo bd eo obj task com ela
         const tasks = rows.map(row => new Task({ ...row, completed: row.completed === 1 }));
-
+        console.log(sql)
+        console.log(params)
+        console.log(rows)
         const result = {
             page,
             limit,
@@ -64,7 +82,9 @@ router.get('/', async (req, res) => {
 
         cache.set(key, { data: result, timestamp: now });
 
-        console.log(sql)
+        console.log("SQL final:", sql);
+        console.log("Params:", params);
+        console.log("Rows retornadas:", rows);
         res.json({ success: true, cached: false, ...result });
     } catch (error) {
         logger.error({
@@ -100,10 +120,28 @@ router.post('/', validate('task'), async (req, res) => {
             });
         }
 
+        console.log("Criando task:", {
+  body: req.body,
+  user: req.user
+});
         await database.run(
-            'INSERT INTO tasks (id, title, description, priority, userId) VALUES (?, ?, ?, ?, ?)',
-            [task.id, task.title, task.description, task.priority, task.userId]
+            `INSERT INTO tasks 
+   (id, title, description, priority, category, tags, dueDate, userId) 
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                task.id,
+                task.title,
+                task.description,
+                task.priority,
+                task.category,
+                Array.isArray(task.tags) ? task.tags.join(',') : task.tags,
+                task.dueDate,
+                task.userId
+            ]
         );
+
+        const check = await database.all("SELECT id, title, category, userId FROM tasks");
+console.log("Tasks salvas no banco:", check);
 
         res.status(201).json({
             success: true,
@@ -161,11 +199,22 @@ router.get('/:id', async (req, res) => {
 // Atualizar tarefa
 router.put('/:id', async (req, res) => {
     try {
-        const { title, description, completed, priority } = req.body;
+        const { title, description, completed, priority, category, tags, dueDate } = req.body;
 
         const result = await database.run(
-            'UPDATE tasks SET title = ?, description = ?, completed = ?, priority = ? WHERE id = ? AND userId = ?',
-            [title, description, completed ? 1 : 0, priority, req.params.id, req.user.id]
+            `UPDATE tasks 
+             SET title = ?, description = ?, completed = ?, priority = ?, category = ?, tags = ?, dueDate = ?
+             WHERE id = ? AND userId = ?`,
+            [title,
+                description,
+                completed ? 1 : 0,
+                priority,
+                category,
+                Array.isArray(tags) ? tags.join(',') : tags,
+                dueDate,
+                req.params.id,
+                req.user.id
+            ]
         );
 
         if (result.changes === 0) {

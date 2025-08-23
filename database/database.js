@@ -32,6 +32,9 @@ class Database {
                 description TEXT,
                 completed INTEGER DEFAULT 0,
                 priority TEXT DEFAULT 'medium',
+                category TEXT,
+                tags TEXT,
+                dueDate DATETIME,
                 userId TEXT NOT NULL,
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (userId) REFERENCES users (id)

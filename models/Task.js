@@ -7,6 +7,9 @@ class Task {
         this.priority = data.priority || 'medium';
         this.userId = data.userId;
         this.createdAt = data.createdAt;
+        this.category = data.category || null;
+        this.tags = data.tags ? data.tags.split(',') : [];
+        this.dueDate = data.dueDate || null;
     }
 
     validate() {
@@ -17,7 +20,7 @@ class Task {
     }
 
     toJSON() {
-        return { ...this };
+        return { ...this, tags: this.tags  };
     }
 }
 

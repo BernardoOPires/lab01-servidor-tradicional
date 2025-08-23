@@ -3,8 +3,12 @@ const { v4: uuidv4 } = require('uuid');
 const User = require('../models/user');
 const database = require('../database/database');
 const { validate } = require('../middleware/validation');
+const jwt = require('jsonwebtoken');
+const config = require('../config/database');
 
 const router = express.Router();
+
+const logger = require('../config/logger');
 
 // Registrar usuário
 router.post('/register', validate('register'), async (req, res) => {
@@ -50,7 +54,8 @@ router.post('/register', validate('register'), async (req, res) => {
             userId: req.user?.id,
             error: error.message,
             stack: error.stack
-        }); 
+        });
+        console.log("Gerando token para ID:", user.id);
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });
@@ -82,7 +87,12 @@ router.post('/login', validate('login'), async (req, res) => {
             });
         }
 
-        const token = user.generateToken();
+        // garante que o id do banco vai para o token
+        const token = jwt.sign(
+            { id: userData.id, email: userData.email, username: userData.username },
+            config.jwtSecret,
+            { expiresIn: config.jwtExpiration }
+        );
 
         res.json({
             success: true,
@@ -98,7 +108,7 @@ router.post('/login', validate('login'), async (req, res) => {
             userId: req.user?.id,
             error: error.message,
             stack: error.stack
-        }); 
+        });
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });
