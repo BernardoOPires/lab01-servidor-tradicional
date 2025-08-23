@@ -11,17 +11,27 @@ const router = express.Router();
 router.use(authMiddleware);
 
 // Listar tarefas
+const cache = new Map();
+
 router.get('/', async (req, res) => {
     try {
 
-        let { page, limit } = req.query;
-
+         let { page, limit, completed, priority } = req.query;
         page = page ? parseInt(page) : 2;
         limit = limit ? parseInt(limit) : 10;
-
         const offset = (page - 1) * limit;
 
-        const { completed, priority } = req.query;
+        const key = `tasks:${req.user.id}:${page}:${limit}:${completed || 'all'}:${priority || 'all'}`;
+        const now = Date.now();
+        const ttl = 30 * 1000;
+
+        if (cache.has(key)) {
+            const { data, timestamp } = cache.get(key);
+            if (now - timestamp < ttl) {
+                return res.json({ success: true, cached: true, ...data });
+            }
+        }
+
         let sql = 'SELECT * FROM tasks WHERE userId = ?';
         const params = [req.user.id];
 
@@ -38,19 +48,22 @@ router.get('/', async (req, res) => {
         sql += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
 
-         //database.all executa a query com sql --> mas os dados vc puxa pelo res?
+        //database.all executa a query com sql --> mas os dados vc puxa pelo res?
         const rows = await database.all(sql, params); //essa parte retornou os dados, ent basta usar a formatação na resposta?
         //percorre as linhas retornadas pelo bd eo obj task com ela
         const tasks = rows.map(row => new Task({ ...row, completed: row.completed === 1 }));
 
-        console.log(sql)
-           res.json({
-            success: true,
+        const result = {
             page,
             limit,
             count: tasks.length,
             data: tasks.map(task => task.toJSON())
-        });
+        };
+
+        cache.set(key, { data: result, timestamp: now });
+
+        console.log(sql)
+        res.json({ success: true, cached: false, ...result });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
@@ -175,8 +188,25 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Estatísticas
+const statsCache = new Map();
+
 router.get('/stats/summary', async (req, res) => {
     try {
+        const key = `stats:${req.user.id}`;
+        const now = Date.now();
+        const ttl = 30 * 1000; // = a 30 secs
+
+        // verificar se cache expirou
+        if (statsCache.has(key)) {
+            const { data, timestamp } = statsCache.get(key);
+            if (now - timestamp < ttl) {
+                return res.json({
+                    success: true,
+                    cached: true,
+                    data
+                });
+            }
+        }
         const stats = await database.get(`
             SELECT 
                 COUNT(*) as total,
@@ -185,12 +215,17 @@ router.get('/stats/summary', async (req, res) => {
             FROM tasks WHERE userId = ?
         `, [req.user.id]);
 
+        const result = {
+            ...stats,
+            completionRate: stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(2) : 0
+        };
+
+        statsCache.set(key, { data: result, timestamp: now });
+
         res.json({
             success: true,
-            data: {
-                ...stats,
-                completionRate: stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(2) : 0
-            }
+            cached: false,
+            data: result
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
