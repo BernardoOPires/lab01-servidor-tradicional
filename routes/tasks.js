@@ -7,8 +7,9 @@ const { validate } = require('../middleware/validation');
 
 const router = express.Router();
 
+const userRateLimit = require('../middleware/rateLimiteUser');
 // Todas as rotas requerem autenticação
-router.use(authMiddleware);
+router.use(authMiddleware, userRateLimit);
 
 // Listar tarefas
 const cache = new Map();
