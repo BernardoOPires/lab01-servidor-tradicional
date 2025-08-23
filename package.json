@@ -1,7 +1,7 @@
 {
   "name": "lab01-servidor-tradicional",
   "version": "1.0.0",
-  "description": "Sistema de tarefas com arquitetura cliente-servidor tradicional",
+  "description": "",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,7 +14,6 @@
   ],
   "author": "Aluno PUC Minas",
   "license": "MIT",
-  "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
@@ -25,7 +24,8 @@
     "joi": "^18.0.0",
     "jsonwebtoken": "^9.0.2",
     "sqlite3": "^5.1.7",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "jest": "^30.0.5",

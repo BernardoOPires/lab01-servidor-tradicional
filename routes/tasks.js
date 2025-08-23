@@ -16,7 +16,7 @@ const cache = new Map();
 router.get('/', async (req, res) => {
     try {
 
-         let { page, limit, completed, priority } = req.query;
+        let { page, limit, completed, priority } = req.query;
         page = page ? parseInt(page) : 2;
         limit = limit ? parseInt(limit) : 10;
         const offset = (page - 1) * limit;
@@ -31,6 +31,7 @@ router.get('/', async (req, res) => {
                 return res.json({ success: true, cached: true, ...data });
             }
         }
+
 
         let sql = 'SELECT * FROM tasks WHERE userId = ?';
         const params = [req.user.id];
@@ -65,6 +66,15 @@ router.get('/', async (req, res) => {
         console.log(sql)
         res.json({ success: true, cached: false, ...result });
     } catch (error) {
+        logger.error({
+            message: 'Erro ao listar tarefas',
+            route: req.originalUrl,
+            method: req.method,
+            query: req.query,
+            userId: req.user?.id,
+            error: error.message,
+            stack: error.stack
+        });
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });
@@ -100,6 +110,15 @@ router.post('/', validate('task'), async (req, res) => {
             data: task.toJSON()
         });
     } catch (error) {
+        logger.error({
+            message: 'Erro ao criar tarefa',
+            route: req.originalUrl,
+            method: req.method,
+            body: req.body,
+            userId: req.user?.id,
+            error: error.message,
+            stack: error.stack
+        });
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });
@@ -125,6 +144,15 @@ router.get('/:id', async (req, res) => {
             data: task.toJSON()
         });
     } catch (error) {
+        logger.error({
+            message: 'Erro ao buscar tarefas por id',
+            route: req.originalUrl,
+            method: req.method,
+            query: req.query,
+            userId: req.user?.id,
+            error: error.message,
+            stack: error.stack
+        });
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });
@@ -159,6 +187,15 @@ router.put('/:id', async (req, res) => {
             data: task.toJSON()
         });
     } catch (error) {
+        logger.error({
+            message: 'Erro ao atualizar tarefa',
+            route: req.originalUrl,
+            method: req.method,
+            body: req.body,
+            userId: req.user?.id,
+            error: error.message,
+            stack: error.stack
+        });
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });
@@ -183,6 +220,15 @@ router.delete('/:id', async (req, res) => {
             message: 'Tarefa deletada com sucesso'
         });
     } catch (error) {
+        logger.error({
+            message: 'Erro ao deletar tarefas',
+            route: req.originalUrl,
+            method: req.method,
+            body: req.body,
+            userId: req.user?.id,
+            error: error.message,
+            stack: error.stack
+        });
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });
@@ -228,6 +274,15 @@ router.get('/stats/summary', async (req, res) => {
             data: result
         });
     } catch (error) {
+        logger.error({
+            message: 'Erro ao listar estatisticas das tarefas',
+            route: req.originalUrl,
+            method: req.method,
+            query: req.query,
+            userId: req.user?.id,
+            error: error.message,
+            stack: error.stack
+        });
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });

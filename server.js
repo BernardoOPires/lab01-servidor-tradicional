@@ -29,9 +29,15 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
+const logger = require('./config/logger');
 // Logging de requisições
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+     logger.info({
+    message: 'Request recebida',
+    method: req.method,
+    url: req.url,
+    userAgent: req.headers['user-agent']
+  });
     next();
 });
 

@@ -42,6 +42,15 @@ router.post('/register', validate('register'), async (req, res) => {
             data: { user: user.toJSON(), token }
         });
     } catch (error) {
+        logger.error({
+            message: 'Erro no registro de usuário',
+            route: req.originalUrl,
+            method: req.method,
+            body: req.body,
+            userId: req.user?.id,
+            error: error.message,
+            stack: error.stack
+        }); 
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });
@@ -81,6 +90,15 @@ router.post('/login', validate('login'), async (req, res) => {
             data: { user: user.toJSON(), token }
         });
     } catch (error) {
+        logger.error({
+            message: 'Erro no login de usuário',
+            route: req.originalUrl,
+            method: req.method,
+            body: req.body,
+            userId: req.user?.id,
+            error: error.message,
+            stack: error.stack
+        }); 
         res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });
